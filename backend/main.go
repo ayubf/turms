@@ -55,8 +55,13 @@ func auxMessage(r string) string {
 	return fmt.Sprintf("-> %v:%v @ %v", p, r, t.Format(time.UnixDate))
 }
 
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+}
+
 // Creates Room From Homepage
 func createRoomRoute(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
 	fmt.Println(auxMessage("/createRoom"))
 	if r.Method == http.MethodPost {
 		bod, err := io.ReadAll(r.Body)
