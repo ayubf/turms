@@ -67,7 +67,7 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 	rooms := client.Database("turmsdb").Collection("rooms")
 	code := r.URL.Query().Get("code")
 
-	filter := bson.M{"code": code}
+	filter := bson.M{"room": code}
 
 	var specificRoom util.Room
 	err := rooms.FindOne(ctx, filter).Decode(&specificRoom)

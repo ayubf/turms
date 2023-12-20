@@ -18,6 +18,7 @@ func main() {
 	t := time.Now()
 	http.HandleFunc("/createroom", router.CreateRoom)
 	http.HandleFunc("/joinroom", router.JoinRoom)
+	http.Handle("/", http.FileServer(http.Dir("./public")))
 
 	fmt.Printf("-> Server Running on Port: %v\n-> %v\n", 8080, t.Format(time.UnixDate))
 	err := http.ListenAndServe(":"+fmt.Sprint(8080), nil)
