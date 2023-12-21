@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from 'react-router-dom';
+
 
 function Home() {
+
+    const navigate = useNavigate();
 
     function getRandomInt() {
         return Math.floor(Math.random() * 99999);
@@ -13,7 +17,7 @@ function Home() {
     const [timeLimit, setTimeLimit] = useState(15);
 
     const checkSession = async () => {
-        await fetch("http://localhost:8080/getsession", {
+        await fetch(`http://localhost:8080/getsession`, {
             credentials: 'include' 
         })
         .then(i => i.json())
@@ -37,7 +41,7 @@ function Home() {
         let res; 
 
         if (!sessionExists || fetchedUser != username) {
-            await fetch("http://localhost:8080/createsession", {
+            await fetch(`http://localhost:8080/createsession`, {
                 method: "POST",
                 body: JSON.stringify({
                     "username": username
@@ -55,7 +59,10 @@ function Home() {
             credentials: 'include' 
         })
         .then(i => i.json())
-        .then(data => res = data)
+        .then(data => {
+            res = data["code"]
+        })
+        navigate(`/joinroom/${res}`);
     }
 
     return <div>

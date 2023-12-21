@@ -177,7 +177,7 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 	rooms := client.Database("turmsdb").Collection("rooms")
 	code := r.URL.Query().Get("code")
 
-	filter := bson.M{"room": code}
+	filter := bson.M{"code": code}
 
 	var specificRoom util.Room
 	err := rooms.FindOne(ctx, filter).Decode(&specificRoom)
@@ -193,7 +193,7 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	expireCheck := func() {
+	expireCheck := func() bool {
 		if specificRoom.ExpirationAt.Before(time.Now()) {
 			w.WriteHeader(http.StatusForbidden)
 			util.AuxMessage("/joinRoom")
@@ -205,7 +205,9 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 		} else {
 			util.AuxMessage("/joinRoom")
 			fmt.Println("Active")
+			return false
 		}
+		return true
 	}
 
 	expireCheck()
@@ -235,9 +237,9 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error reading cookie", http.StatusInternalServerError)
 	}
 
-	tokenClaims := token.Claims.(jwt.MapClaims)
+	tokenClaims := token.Claims.(*jwt.StandardClaims)
 
-	username := tokenClaims["username"].(string)
+	username := tokenClaims.Issuer
 
 	defer conn.Close()
 
@@ -260,12 +262,13 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 			Time:    time.Now().Format(time.UnixDate),
 		}
 
-		expireCheck()
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"alert":      "Room Closed",
-			"roomExists": false,
-		})
-
+		if expireCheck() {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"alert":      "Room Closed",
+				"roomExists": false,
+			})
+			return
+		}
 		update := bson.D{{Key: "$push", Value: bson.D{{Key: "messages", Value: newMessage}}}}
 		_, err = rooms.UpdateOne(ctx, filter, update)
 		if err != nil {
