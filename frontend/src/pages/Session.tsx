@@ -52,6 +52,7 @@ const Session = () => {
   return (
     <div>
       <h1>Session</h1>
+      <hr />
       <div>
         {sessionExists ? (
           <div>

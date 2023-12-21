@@ -106,6 +106,8 @@ const Room = () => {
 
 
     return <div>
+        <h1>Room</h1>
+        <hr />
         <div>
             {
                 roomData != undefined ? (
@@ -133,7 +135,7 @@ const Room = () => {
                                 {
                                     messageList.map( ({Author, Message, Time}, i) => {
                                         return <p style={{
-                                            "color": Author == "Turms" ? "red" : "black"
+                                            "color": Author == "Turms" ? "red" : "white"
                                         }} key={i} >{Author} : {Message}</p>
                                     })
                                 }

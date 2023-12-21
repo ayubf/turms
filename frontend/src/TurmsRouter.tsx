@@ -6,6 +6,7 @@ import Room from "./pages/Room";
 import CreateUserName from "./pages/CreateUserName";
 import Session from "./pages/Session";
 import About from "./pages/About";
+import Join from "./pages/Join";
 
 const TurmsRouter = createBrowserRouter([
     {
@@ -42,6 +43,10 @@ const TurmsRouter = createBrowserRouter([
     {
       path: "/about",
       element: <About />
+    },
+    {
+      path: "/join",
+      element: <Join />
     }
   ]);
   

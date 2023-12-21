@@ -7,6 +7,8 @@ Full-stack disposable, instant messaging service written in Go &amp; TypeScript
 
 - [Install Go](https://go.dev/)
 
+- [Install MongoDB](https://www.mongodb.com/docs/manual/administration/install-community/)
+
 ### Set Up 
 
 1. Clone project files
@@ -17,19 +19,26 @@ Full-stack disposable, instant messaging service written in Go &amp; TypeScript
 
 2. Set up
 
+Set up frontend
 ```shell 
     cd turms/frontend
     npm i
 ```
+
+Make sure MongoDB is running after install
+```shell
+    mongosh 
+```
+
 3. Run 
 
-In two seperate terminal windows:
+In two seperate terminal windows, and make sure mongo:
 
-```
+```shell
     cd turms/frontend && npm run start
 ```
 
-```
+```shell
     cd turms/backend && go run main.go
 ```
 Then visit https://localhost:3000
