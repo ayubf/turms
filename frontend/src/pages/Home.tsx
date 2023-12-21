@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 function Home() {
 
@@ -6,26 +6,53 @@ function Home() {
         return Math.floor(Math.random() * 99999);
     }
     
-    const [username, setUsername] = useState("Guest"+getRandomInt());
+    const [sessionExists, setSessionExist] = useState(false);
+    const [username, setUsername] = useState("");
+    const [fetchedUser, setFetchedUser] = useState("");
     const [roomname, setRoomname] = useState("Room"+getRandomInt())
     const [timeLimit, setTimeLimit] = useState(15);
+
+    const checkSession = async () => {
+        await fetch("http://localhost:8080/getsession", {
+            credentials: 'include' 
+        })
+        .then(i => i.json())
+        .then((data) => {
+            if (data.hasOwnProperty("iss")) {
+                setSessionExist(true); 
+                setUsername(data["iss"])
+                setFetchedUser(data["iss"])
+            } else {
+                setUsername("Guest"+getRandomInt())
+            }
+        })
+    }
+
+    useEffect(() => {
+        checkSession()
+        console.log(sessionExists)
+    })
 
     async function createRoom() {
         let res; 
 
-        await fetch("http://localhost:8080/createsession", {
-            method: "POST", 
-            body: JSON.stringify({
-                "username": username
+        if (!sessionExists || fetchedUser != username) {
+            await fetch("http://localhost:8080/createsession", {
+                method: "POST",
+                body: JSON.stringify({
+                    "username": username
+                }),
+                credentials: 'include' 
             })
-        })
+        }
 
         await fetch("http://localhost:8080/createroom", {
             method: "POST",
             body: JSON.stringify({
                 "roomname": roomname,
                 "timeLimit": timeLimit
-            })
+            }),
+            credentials: 'include' 
         })
         .then(i => i.json())
         .then(data => res = data)
