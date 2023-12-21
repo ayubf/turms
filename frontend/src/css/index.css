@@ -11,8 +11,8 @@ a, a:visited, a::before, a::after {
 
 
 button {
-  background-color: #fff; /* White background for contrast */
-  color: #435585; /* Main color of the body for text */
+  background-color: #fff;
+  color: #435585; 
   padding: 10px 20px;
   border: none;
   border-radius: 4px;
@@ -20,7 +20,7 @@ button {
 }
 
 button:hover {
-  background-color: #f0f0f0; /* Lighter shade for hover effect */
+  background-color: #f0f0f0;
 }
 
 input[type="text"] {

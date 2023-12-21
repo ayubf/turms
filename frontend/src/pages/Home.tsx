@@ -23,7 +23,7 @@ function Home() {
         if (data.hasOwnProperty("iss")) {
           setSessionExist(true);
           setFetchedUser(data["iss"]);
-          setUsername(data["iss"]); // Set the username from the session
+          setUsername(data["iss"]); 
         } else {
           setUsername("Guest" + getRandomInt());
         }
@@ -32,7 +32,6 @@ function Home() {
 
   useEffect(() => {
     checkSession();
-    // console.log(sessionExists); // You may not need this log
     return () => { }
   }, []);
 
