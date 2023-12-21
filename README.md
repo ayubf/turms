@@ -1,6 +1,3 @@
-## Turms
-Full-stack disposable, instant messaging service written in Go &amp; TypeScript
-
 ### Pre-requisites
 
 - [Install Nodejs](https://nodejs.org/en)
