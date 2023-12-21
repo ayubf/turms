@@ -4,6 +4,8 @@ import {
 import Home from "./pages/Home";
 import Room from "./pages/Room";
 import CreateUserName from "./pages/CreateUserName";
+import Session from "./pages/Session";
+import About from "./pages/About";
 
 const TurmsRouter = createBrowserRouter([
     {
@@ -32,6 +34,14 @@ const TurmsRouter = createBrowserRouter([
         <h1>404: Room Not Found</h1>
         <p>Room may have expired or room code was inputted incorrectly</p>
       </div>)
+    },
+    {
+      path: "/session", 
+      element: <Session />
+    },
+    {
+      path: "/about",
+      element: <About />
     }
   ]);
   

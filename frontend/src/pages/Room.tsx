@@ -1,7 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router-dom';
-
 
 
 interface Message {
@@ -27,7 +26,7 @@ const Room = () => {
     const [roomData, setRoomData] = useState<RoomData>();
     const [currMessage, setCurrMessage] = useState("");
     const [socket, setSocket] = useState<WebSocket>();
-
+    const messagesBoxRef = useRef<HTMLDivElement>(null);
 
 
     const checkSession = async () => {
@@ -39,7 +38,6 @@ const Room = () => {
             if (data.hasOwnProperty("iss")) {
                 setSessionExist(true); 
                 setUsername(data["iss"])
-                console.log("WOW")
             } else {
                 nav(`/createuser/${id}`)
             }
@@ -81,6 +79,7 @@ const Room = () => {
             const messageJSON = JSON.stringify({ "Message": message });
             socket.send(messageJSON);
             setMessageList([...messageList, {"Message": message, "Author": username}])
+            setCurrMessage("")
         }
     };
 
@@ -93,45 +92,60 @@ const Room = () => {
                 websocketConnect(); 
             }
         };
+
     
         fetchData();
         return () => {}
     }, [sessionExists, id]);
 
+    useEffect(() => {
+        if (messagesBoxRef.current) {
+            messagesBoxRef.current.scrollTop = messagesBoxRef.current.scrollHeight;
+        }
+    })
+
 
     return <div>
-        {
-            roomData != undefined ? (
-                <div>
-                    <h1>{roomData.roomName}</h1>
-                    <h3>{roomData.roomCreatorName}</h3>
-                    <p>Expires at: {roomData.expirationAt}</p>
-                    <button
-                        onClick={() => {
-                            navigator.clipboard.writeText(`http://localhost:3000/joinroom/${roomData.code}`);
-                        }}
-                    >Copy Room Link</button>
-                </div>
-            ) : <></>
-        }
-        <div className="messageArea">
+        <div>
+            {
+                roomData != undefined ? (
+                    <div className='room-data'>
+                        <h1>{roomData.roomName}</h1>
+                        <h3>{roomData.roomCreatorName}</h3>
+                        <p>Expires at: {new Date(roomData.expirationAt).toLocaleString()}</p>
+                        <div>
+                        <button
+                            onClick={() => {
+                                navigator.clipboard.writeText(`http://localhost:3000/joinroom/${roomData.code}`);
+                            }}
+                        >Copy Room Link</button>
+                        </div>
+                    </div>
+                ) : <></>
+            }
+        </div>
+        <div className="message-area">
             {
                 roomData ? (
                     <div>
-                        <div>
-                            {
-                                messageList.map( ({Author, Message, Time}, i) => {
-                                    return <p style={{
-                                        "color": Author == "Turms" ? "red" : "black"
-                                    }} key={i} >{Author} : {Message}</p>
-                                })
-                            }
+                        <div className="messages-box" ref={messagesBoxRef}>
+                            <div>
+                                {
+                                    messageList.map( ({Author, Message, Time}, i) => {
+                                        return <p style={{
+                                            "color": Author == "Turms" ? "red" : "black"
+                                        }} key={i} >{Author} : {Message}</p>
+                                    })
+                                }
+                            </div>
                         </div>
-                        <input type="text" value={currMessage} onChange={(e) => setCurrMessage(e.target.value)} />
-                        <button onClick={() => {sendMessage(currMessage)}}>Send Message</button>
                     </div>
                 ) : <></>
             } 
+            <div className="message-writing-div">
+                <input type="text" value={currMessage} onChange={(e) => setCurrMessage(e.target.value)} />
+                <button onClick={() => {sendMessage(currMessage)}}>Send Message</button>
+            </div>
         </div>
     </div>
 }
