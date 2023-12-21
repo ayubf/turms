@@ -3,21 +3,131 @@ package router
 import (
 	"encoding/json"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"log"
 	"net/http"
 	"time"
 	"turmsapi/util"
+
+	"github.com/golang-jwt/jwt"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func CreateRoom(w http.ResponseWriter, r *http.Request) {
-	util.WrapPostMethod(w, r, func(w http.ResponseWriter, r *http.Request) {
+const SecretKey = "EXAMPLESECRETKEY"
+
+func CreateSession(w http.ResponseWriter, r *http.Request) {
+	util.WrapMethod("POST", w, r, func(w http.ResponseWriter, r *http.Request) {
 		var reqBody struct {
-			UserName  string
+			UserName string
+		}
+
+		bod, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusInternalServerError)
+			log.Fatal(err)
+		}
+		err = json.Unmarshal(bod, &reqBody)
+		if err != nil {
+			http.Error(w, "Error decoding JSON", http.StatusInternalServerError)
+		}
+
+		claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
+			Issuer:    reqBody.UserName,
+			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+		})
+
+		token, err := claims.SignedString([]byte(SecretKey))
+
+		if err != nil {
+			http.Error(w, "Error creating session", http.StatusInternalServerError)
+		}
+
+		c := http.Cookie{
+			Name:     "token",
+			Value:    token,
+			Domain:   "localhost",
+			Path:     "/",
+			SameSite: http.SameSiteLaxMode,
+			Secure:   false,
+			HttpOnly: true,
+		}
+
+		http.SetCookie(w, &c)
+	})
+}
+
+func GetSession(w http.ResponseWriter, r *http.Request) {
+	util.WrapMethod("GET", w, r, func(w http.ResponseWriter, r *http.Request) {
+
+		tokenCookie, err := r.Cookie("token")
+		if err == http.ErrNoCookie {
+			w.WriteHeader(200)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"authenticated": "false",
+			})
+			return
+		} else if err != nil {
+			http.Error(w, "Error retrieving cookie", http.StatusInternalServerError)
+		}
+
+		token, err := jwt.ParseWithClaims(tokenCookie.Value, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return []byte(SecretKey), nil
+		})
+
+		if err != nil {
+			http.Error(w, "Error reading cookie", http.StatusInternalServerError)
+		}
+
+		json.NewEncoder(w).Encode(token.Claims)
+
+	})
+}
+
+func CreateRoom(w http.ResponseWriter, r *http.Request) {
+	util.WrapMethod("POST", w, r, func(w http.ResponseWriter, r *http.Request) {
+		var reqBody struct {
 			RoomName  string
 			TimeLimit int
+		}
+
+		tokenCookie, err := r.Cookie("token")
+		if err != nil {
+			http.Error(w, "Error retrieving token cookie", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := jwt.ParseWithClaims(tokenCookie.Value, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return []byte(SecretKey), nil
+		})
+
+		if err != nil {
+			if ve, ok := err.(*jwt.ValidationError); ok {
+				if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+					http.Error(w, "Invalid token format", http.StatusUnauthorized)
+					return
+				} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+					http.Error(w, "Token is expired or not yet valid", http.StatusUnauthorized)
+					return
+				} else {
+					http.Error(w, "Error validating token", http.StatusInternalServerError)
+					return
+				}
+			} else {
+				http.Error(w, "Error parsing token", http.StatusInternalServerError)
+				return
+			}
+		}
+
+		var username string
+
+		fmt.Println(token.Claims)
+
+		if tokenClaims, ok := token.Claims.(*jwt.StandardClaims); ok && token.Valid {
+			username = tokenClaims.Issuer
+		} else {
+			http.Error(w, "Error extracting token claims", http.StatusInternalServerError)
+			return
 		}
 
 		bod, err := io.ReadAll(r.Body)
@@ -38,7 +148,7 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 			"created":  true,
 			"code":     roomCode,
 			"roomName": reqBody.RoomName,
-			"username": reqBody.UserName,
+			"username": username,
 		})
 
 		ctx, client := util.InitClient()
@@ -46,7 +156,7 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 		rooms := client.Database("turmsdb").Collection("rooms")
 
 		rooms.InsertOne(ctx, bson.M{
-			"roomCreatorName": reqBody.UserName,
+			"roomCreatorName": username,
 			"roomName":        reqBody.RoomName,
 			"code":            roomCode,
 			"messages":        []util.Message{},
@@ -60,7 +170,7 @@ func CreateRoom(w http.ResponseWriter, r *http.Request) {
 
 func JoinRoom(w http.ResponseWriter, r *http.Request) {
 
-	util.EnableCors(&w)
+	util.EnableCors(w, r)
 
 	ctx, client := util.InitClient()
 
@@ -112,6 +222,23 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenCookie, err := r.Cookie("token")
+	if err != nil {
+		http.Error(w, "Error retrieving cookie", http.StatusInternalServerError)
+	}
+
+	token, err := jwt.ParseWithClaims(tokenCookie.Value, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SecretKey), nil
+	})
+
+	if err != nil {
+		http.Error(w, "Error reading cookie", http.StatusInternalServerError)
+	}
+
+	tokenClaims := token.Claims.(jwt.MapClaims)
+
+	username := tokenClaims["username"].(string)
+
 	defer conn.Close()
 
 	for {
@@ -120,8 +247,7 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var receivedMessage struct {
-			UserName string
-			Message  string
+			Message string
 		}
 		err = json.Unmarshal(p, &receivedMessage)
 		if err != nil {
@@ -130,7 +256,7 @@ func JoinRoom(w http.ResponseWriter, r *http.Request) {
 		}
 		newMessage := util.Message{
 			Message: receivedMessage.Message,
-			Author:  receivedMessage.UserName,
+			Author:  username,
 			Time:    time.Now().Format(time.UnixDate),
 		}
 

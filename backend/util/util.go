@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -73,8 +74,19 @@ func AuxMessage(r string) {
 	fmt.Printf("-> %v:%v @ %v  \n", p, r, t.Format(time.UnixDate))
 }
 
-func EnableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*") // Change Later
+func EnableCors(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+
+	if origin == "http://localhost:3000" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 }
 
 func CreateNewCode(length int) string {
@@ -86,9 +98,9 @@ func CreateNewCode(length int) string {
 	return string(result)
 }
 
-func WrapPostMethod(w http.ResponseWriter, r *http.Request, f func(http.ResponseWriter, *http.Request)) {
-	EnableCors(&w)
-	if r.Method == http.MethodPost {
+func WrapMethod(method string, w http.ResponseWriter, r *http.Request, f func(http.ResponseWriter, *http.Request)) {
+	EnableCors(w, r)
+	if r.Method == method {
 		f(w, r)
 	} else {
 		w.WriteHeader(http.StatusForbidden)
