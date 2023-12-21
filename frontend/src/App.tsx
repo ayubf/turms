@@ -12,7 +12,6 @@ function App() {
         <a className="navbar-head" href="/">Turms</a> 
         <a href="/session">Session</a> 
         <a href="/join">Join</a> 
-        <a href="/about">About</a>
       </div>
       <hr />
       <RouterProvider router={TurmsRouter} />
